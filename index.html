@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>我的播放器</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div class="FM_container">
+    <div class="FM_header">
+        <!--<div class="menu">-->
+        <!--<ul>-->
+        <!--<li>我的最爱</li>-->
+        <!--<li>我的最爱</li>-->
+        <!--<li>我的最爱</li>-->
+        <!--<li>我的最爱</li>-->
+        <!--<li>我的最爱</li>-->
+        <!--<li>我的最爱</li>-->
+        <!--</ul>-->
+        <!--</div>-->
+        <!--<span id='down'>-->
+        <!--<img src="src/down.png" alt="">-->
+        <!--</span>-->
+        <h2>--</h2>
+        <p>--</p>
+    </div>
+    <div class="FM_body">
+        <div class="music_img">
+        </div>
+    </div>
+    <div class="FM_footer">
+        <div class="timeline">
+            <span id='current_time'>00:00</span>
+            <div id="line"></div>
+            <span id='duration'>00:00</span>
+            <div class="line_point"></div>
+        </div>
+        <div class="play_btns">
+            <div class="pre_song">
+                <img src="src/presong.png" alt="">
+            </div>
+            <div class="pause">
+                <img src="src/stop.png" alt="">
+            </div>
+            <div class="next_song">
+                <img src="src/nextsong.png" alt="">
+            </div>
+        </div>
+        <div class="lrc">
+        </div>
+    </div>
+</div>
+<audio src="" autoplay='autoplay'></audio>
+<script src='js/jquery-3.2.1.js'></script>
+<script>
+  let i = parseInt(Math.random() * 97 + 3);
+  let songList = [];
+
+
+  function getMusic(data) {
+//    data.song_list.forEach(function (e) {
+//      console.log(e);
+//    })
+    songList = data.song_list;
+    playSong(data.song_list[i].song_id)
+  };
+  function playMusic(data) {
+    $('audio').attr('src', data.bitrate.file_link);
+    $('.FM_header h2').text(data.songinfo.title);
+    $('.FM_header p').text(data.songinfo.author);
+    $('.music_img').empty();
+    $('.music_img').append('<img src=\'' + data.songinfo.pic_radio + '\'\/>');
+
+  };
+
+  function playSong(id) {
+    let script = '<script id=\'music_src\' src=\'http://tingapi.ting.baidu.com/v1/restserver/ting?format=json&from=webapp_music&callback=playMusic&method=baidu.ting.song.play&songid=' + id + '\'><\/script>'
+    $('body').append(script);
+    $('#music_src').remove();
+    //重置播放进度条
+    $('.line_point').css({
+      'animation':'none',
+      'left':'42px',
+    });
+    //等待音频时间加载完毕再设定动画
+    setTimeout(function () {
+      $('.line_point').css({
+        'animation':$('audio')[0].duration+'s playing linear forwards'
+      });
+    },200)
+
+  };
+
+
+
+//  $('#down').on('click', function () {
+//    $('.menu').toggleClass('active');
+//  });
+
+  //下一首
+  $('.next_song').on('click', function () {
+    $('.pause img').attr('src', 'src/stop.png');
+    $('.music_img').css('animation-play-state', 'running');
+    if (i == 99) {
+      i = 3;
+    } else {
+      i++
+    }
+    playSong(songList[i].song_id);
+  });
+  //上一首
+  $('.pre_song').on('click', function () {
+    $('.pause img').attr('src', 'src/stop.png');
+    $('.music_img').css('animation-play-state', 'running');
+    if (i == 3) {
+      i = 99;
+    } else {
+      i--;
+    }
+    playSong(songList[i].song_id);
+  })
+  //暂停功能
+  $('.pause').on('click', function () {
+    if ($('audio')[0].paused) {
+      $('audio')[0].play();
+      $('.pause img').attr('src', 'src/stop.png');
+      $('.music_img').css('animation-play-state', 'running');
+      $('.line_point').css('animation-play-state','running');
+    } else {
+      $('audio')[0].pause();
+      $('.pause img').attr('src', 'src/play.png');
+      $('.music_img').css('animation-play-state', 'paused');
+      $('.line_point').css('animation-play-state','paused');
+    }
+    ;
+
+  });
+  //播放进度条控制
+  $('#line').on('click',function (e) {
+    let x = e.offsetX;
+    let playPlan = x/185;
+    let playTime = $('audio')[0].duration*playPlan;
+    $('audio')[0].currentTime = playTime;
+    setTimeout(function () {
+      let remainTime = $('audio')[0].duration - $('audio')[0].currentTime;
+      let pointMove = parseInt(playPlan*185+42);
+      if(pointMove>=227){
+        pointMove=227;
+      }
+      $('.line_point').css({
+        'animation':'none',
+        'left':pointMove
+      });
+      setTimeout(function () {
+        $('.line_point').css('animation',remainTime+'s playing linear forwards');
+      },100)
+    })
+  })
+  //当前音频播放结束之后自动播放下一首
+  $('audio').on('ended', function () {
+    i++;
+    playSong(songList[i].song_id);
+  });
+  //显示音频总时长
+  $('audio').on('playing', function () {
+    let duration = $('audio')[0].duration;
+    $('#duration').text(transTime(duration));
+  });
+
+  //时间单位转换
+  function transTime(time) {
+    let minutes = parseInt(time / 60);
+    let seconds = parseInt(time % 60);
+    if(minutes<10){
+      minutes = '0'+ minutes
+    }
+    if(seconds<10){
+      seconds = '0'+ seconds
+    }
+    return minutes + ':' + seconds
+  };
+
+
+
+  //实时显示播放进度
+  setInterval(function () {
+    let currentTime = $('audio')[0].currentTime;
+    $('#current_time').text(transTime(currentTime));
+  }, 1000)
+
+</script>
+
+<script src='http://tingapi.ting.baidu.com/v1/restserver/ting?format=json&from=webapp_music&callback=getMusic&method=baidu.ting.billboard.billList&type=1&size=100&offset=0'>
+</script>
+</body>
+</html>
